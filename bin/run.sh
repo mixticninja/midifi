@@ -1,1 +1,1 @@
-java -jar FingerPlayServer.jar $*
+java -jar 7PadMidi.jar $*

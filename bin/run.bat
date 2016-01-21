@@ -1,1 +1,1 @@
-java -jar FingerPlayServer.jar %1 %2
+java -jar 7PadMidi.jar %1 %2
