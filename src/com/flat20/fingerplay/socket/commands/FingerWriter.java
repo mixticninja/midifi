@@ -1,10 +1,10 @@
 package com.flat20.fingerplay.socket.commands;
 
 import java.io.DataOutputStream;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 
 import com.flat20.fingerplay.socket.commands.midi.MidiSocketCommand;
-import com.flat20.fingerplay.socket.commands.SocketStringCommand;
 
 // Doesn't allocate anything but overwrites its internal buffer.
 public class FingerWriter {
@@ -13,11 +13,14 @@ public class FingerWriter {
 
 	final private byte[] mData;
 	final private ByteBuffer mDataBuffer;
+	
+	private Socket clientConn;
 
-	public FingerWriter(DataOutputStream out) {
+	public FingerWriter(Socket clientConn,DataOutputStream out) {
 		mOut = out;
 		mData = new byte[0xFFFF];
 		mDataBuffer = ByteBuffer.wrap(mData); // command, length
+		this.clientConn = clientConn;
 	}
 /*
 	public void write(SocketCommand socketCommand) throws Exception {
@@ -28,29 +31,46 @@ public class FingerWriter {
 		mOut.write( data );
 	}
 */
+	
+	public void write(byte[] message) throws Exception {
+	//	System.out.println("Wirter write : msg byte[] to client : "+message.toString());
+		if (clientConn.isConnected() & !clientConn.isClosed()){
+			mOut.write( message, 0, message.length );
+			mOut.flush();
+		}
+	}
+
 	public void write(SocketCommand socketCommand) throws Exception {
-		final int size;
-		switch (socketCommand.command) {
-			case SocketCommand.COMMAND_MIDI_SHORT_MESSAGE:
-				size = encode((MidiSocketCommand) socketCommand);
-				mOut.write( mData, 0, size );
-				return;
+		if (clientConn.isConnected() & !clientConn.isClosed()){
+			final int size;
+			switch (socketCommand.command) {
+				case SocketCommand.COMMAND_MIDI_SHORT_MESSAGE:
+					size = encode((MidiSocketCommand) socketCommand);
+					mOut.write( mData, 0, size );
+					mOut.flush();
+					return;
 
-			case SocketCommand.COMMAND_REQUEST_MIDI_DEVICE_LIST:
-				size = encode((SocketCommand) socketCommand);
-				mOut.write( mData, 0, size );
-				return;
+				case SocketCommand.COMMAND_REQUEST_MIDI_DEVICE_LIST:
+					size = encode((SocketCommand) socketCommand);
+					mOut.write( mData, 0, size );
+					mOut.flush();
+					return;
 
-			case SocketCommand.COMMAND_SET_MIDI_DEVICE:
-			case SocketCommand.COMMAND_VERSION:
-			case SocketCommand.COMMAND_MIDI_DEVICE_LIST:
-				size = encode((SocketStringCommand) socketCommand);
-				mOut.write( mData, 0, size );
-				return;
+				case SocketCommand.COMMAND_SET_MIDI_DEVICE:
+				case SocketCommand.COMMAND_VERSION:
+				case SocketCommand.COMMAND_MIDI_DEVICE_LIST:
+					size = encode((SocketStringCommand) socketCommand);
+					mOut.write( mData, 0, size );
+					mOut.flush();
+					return;
+				
+				default:
+					throw new Exception("Can't encode the SocketCommand " + socketCommand);
+			}
 			
-			default:
-				throw new Exception("Can't encode the SocketCommand " + socketCommand);
-		}/*
+		}
+		
+		/*
 		// try catch ClassCastException
 		try {
 			return encode((MidiSocketCommand) socketCommand);

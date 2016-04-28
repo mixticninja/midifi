@@ -9,15 +9,32 @@ import javax.sound.midi.MidiUnavailableException;
 import javax.sound.midi.Receiver;
 import javax.sound.midi.ShortMessage;
 import javax.sound.midi.SysexMessage;
+import javax.sound.midi.Transmitter;
+
+import com.flat20.fingerplay.socket.UdpOutput;
 
 public class Midi {
 
+	/** Number of connections */
+	public static int number_of_connections = 0;
+
+	
 	MidiDevice outputDevice = null;
 	Receiver receiver = null; //An output's receiver
 
-	public Midi() {
-		//open(deviceName);
+	private static Midi instance = null;
+	
+	public static Midi getInstance(){
+	    if(instance==null){
+	    	instance = new Midi();
+	    }
+	    return instance;
+	  }
+
+	private Midi() {
+		
 	}
+
 
 	public MidiDevice open(String deviceName, boolean bForOutput) {
 		MidiDevice.Info	info = getMidiDeviceInfo(deviceName, bForOutput);
@@ -28,9 +45,12 @@ public class Midi {
 				System.out.println(info.getName() + " selected.");
 				outputDevice.open();
 				if (bForOutput)
+				{
 					receiver = outputDevice.getReceiver();
-				//Transmitter t = outputDevice.getTransmitter();
-				//t.
+					Transmitter t = outputDevice.getTransmitter();
+					t.setReceiver(receiver);
+				}
+				
 				return outputDevice;
 			} catch (MidiUnavailableException e) {
 				System.out.println(e);
@@ -112,7 +132,7 @@ public class Midi {
 		{
 			System.out.println(e);
 		}
-
+		
 		receiver.send(offMessage, -1);
 
 	}
@@ -129,8 +149,11 @@ public class Midi {
 	}
 
 	private void sendShortMessage(ShortMessage shortMessage) {
-		if (receiver != null)
+		if (receiver != null){
+			//System.out.println("shortMessage: -1 "+ receiver.getClass().getName());
 			receiver.send(shortMessage, -1);//System.nanoTime());
+		}
+			
 	}
 
 	public void sendsysex(String message) {
@@ -155,7 +178,7 @@ public class Midi {
 		} catch (InvalidMidiDataException e) {
 			System.out.println(e);
 		}
-
+		System.out.println("sysexMessage: -1 "+ receiver.getClass().getName());
 		// sysex
 		receiver.send(sysexMessage, -1);
 	}

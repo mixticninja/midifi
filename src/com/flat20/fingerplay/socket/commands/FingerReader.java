@@ -13,7 +13,7 @@ import com.flat20.fingerplay.socket.commands.misc.Version;
 public class FingerReader {
 
 	final private DataInputStream mIn;
-	final private IReceiver mReceiver;
+	final private ISocketReceiver mReceiver;
 
 	final private static byte[] sData = new byte[ 0xFFFF ];
 
@@ -24,7 +24,7 @@ public class FingerReader {
 	final private SetMidiDevice sMd = new SetMidiDevice();
 	final private Version sV = new Version();
 
-	public FingerReader(DataInputStream in, IReceiver receiver) {
+	public FingerReader(DataInputStream in, ISocketReceiver receiver) {
 		mIn = in;
 		mReceiver = receiver;
 	}
@@ -32,7 +32,7 @@ public class FingerReader {
 	public byte readCommand() throws Exception {
 
 		byte command = mIn.readByte();
-
+		//System.out.println("socket read command : " + command);
 		// commands[COMMAND_ID] = SocketCommand ?
 		switch (command) {
 			case SocketCommand.COMMAND_MIDI_SHORT_MESSAGE:
@@ -48,6 +48,7 @@ public class FingerReader {
 				return command;
 			
 			case SocketCommand.COMMAND_SET_MIDI_DEVICE:
+				System.out.println("socket read command : " + command + this.toString());
 				mReceiver.onSetMidiDevice( (SetMidiDevice) decode(sMd, command) );
 				return command;
 
@@ -112,7 +113,7 @@ public class FingerReader {
 	}
 
 
-	public interface IReceiver {
+	public interface ISocketReceiver {
 		public void onMidiSocketCommand(MidiSocketCommand socketCommand) throws Exception;
 		public void onRequestMidiDeviceList(RequestMidiDeviceList socketCommand) throws Exception;
 		public void onDeviceList(DeviceList socketCommand) throws Exception;

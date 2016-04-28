@@ -22,6 +22,8 @@ public class SocketCommand {
 
 	// Client tells server if a control needs smoothing.
 	public final static byte COMMAND_VERSION = 0x07; 
+	
+	
 
 	public byte command;
 	//public byte[] data; //First byte contains the command;

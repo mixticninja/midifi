@@ -45,26 +45,32 @@ public class MidiReceiver implements Receiver {
 	private IMidiListener mListener;
 
 	public MidiReceiver(IMidiListener listener) {
+	//	System.out.println("receiver contruct listener");
 		mListener = listener;
 	}
 
-	public void close() {
-	}
+	
 
 	public void send(MidiMessage message, long timestamp) {
-		System.out.println(timestamp + " " );
+		if (mListener!=null){
+			decodeMessage((ShortMessage)message);
+		}
+		
+		
 	}
 
 	public void decodeMessage(ShortMessage message) {
+		
+	//	System.out.println("decode: " +message .toString());
 		switch (message.getCommand()) {
 			case 0x80:
 				// note off note getData1 ,vel = getData2
-				mListener.onNoteOff(message.getChannel(), message.getData1(), message.getData2());
+		//	mListener.onNoteOff(message.getChannel(), message.getData1(), message.getData2());
 				//strMessage = "note Off " + message.getData1() + " velocity: " + message.getData2();
 				break;
 
 			case 0x90:
-				mListener.onNoteOn(message.getChannel(), message.getData1(), message.getData2());
+			//	mListener.onNoteOn(message.getChannel(), message.getData1(), message.getData2());
 				//strMessage = "note On " + message.getData1() + " velocity: " + message.getData2();
 				break;
 
@@ -75,50 +81,25 @@ public class MidiReceiver implements Receiver {
 			case 0xb0:
 				// 0xb0 -> 0xbF ?????
 				// control1 = 0xB0 - message.getCommand()
-				mListener.onControlChange(message.getChannel(), message.getData1(), message.getData2());
+			//	mListener.onControlChange(message.getChannel(), message.getData1(), message.getData2());
 				//strMessage = "control change " + message.getData1() + " value: " + message.getData2();
 				break;
 
 			case 0xF0:
-				System.out.println("MidiReceiver " + SYSTEM_MESSAGE_TEXT[message.getChannel()]);
-				if ( message.getChannel() == 8 ) {
-					System.out.println("..." + message.getChannel());
-				}
-
-				//if (message.getChannel() == 8) {
-					//System.out.println("MidiReceiver " + )
-				//}
-				//strMessage = SYSTEM_MESSAGE_TEXT[message.getChannel()];
-				/*
-				switch (message.getChannel()) {
+				//System.out.println("MidiReceiver onMidiForClientReceived" + SYSTEM_MESSAGE_TEXT[message.getChannel()]);
 				
+				//System.out.println(" onMidiForClientReceived message " + message.toString());
+				/*if ( message.getChannel() == 8 ) {
+					System.out.println("..." + message.getChannel());
 				}*/
-				/*
-				case 0x1:
-					int	nQType = (message.getData1() & 0x70) >> 4;
-					int	nQData = message.getData1() & 0x0F;
-					if (nQType == 7)
-					{
-						nQData = nQData & 0x1;
-					}
-					strMessage += QUARTER_FRAME_MESSAGE_TEXT[nQType] + nQData;
-					if (nQType == 7)
-					{
-						int	nFrameType = (message.getData1() & 0x06) >> 1;
-						strMessage += ", frame type: " + FRAME_TYPE_TEXT[nFrameType];
-					}
-					break;
-
-				case 0x2:
-					strMessage += get14bitValue(message.getData1(), message.getData2());
-					break;
-
-				case 0x3:
-					strMessage += message.getData1();
-					break;
-				}*/
+				// send to clients
+				if (mListener!=null){
+					mListener.onMidiForClientReceived(message.getMessage());
+				}
+				
+				
 				break;
-
+				
 
 			default:
 				break;
@@ -202,6 +183,12 @@ public class MidiReceiver implements Receiver {
 		public void onNoteOn(int channel, int key, int velocity);
 		public void onNoteOff(int channel, int key, int velocity);
 		public void onControlChange(int channel, int key, int velocity);
+		public void onMidiForClientReceived(byte[] message);
+	}
+	
+	public void close() {
+		mListener=null;
+		
 	}
 
 }

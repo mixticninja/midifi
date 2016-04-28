@@ -16,41 +16,41 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.ListIterator;
 
-import javax.swing.ImageIcon;
-
-import com.flat20.fingerplay.socket.ClientSocketThread;
-import com.flat20.fingerplay.socket.MulticastServer;
-import com.flat20.fingerplay.socket.commands.SocketCommand;
+import com.flat20.fingerplay.socket.ServerSocketThread;
 
 public class FingerPlayServer implements Runnable{
 
-	public static final String VERSION = "0.9.6";
+	public static final String VERSION = "0.9.7";
 	public static final int SERVERPORT = 4444;
 
-	public static final String MULTICAST_SERVERIP = "230.0.0.1";
-	public static final int MULTICAST_SERVERPORT = 9013;
 
-	private Midi midi;
-	
+	public static final int UDP_SERVERPORT = 9013;
+
 	private String mLocalIP = null;
 	private static int mPort = SERVERPORT;
+	
 
+
+	/** Maximum number of connections */
+	private static final int max_connections = 1;
 	private SystemTray tray = null;
 	
 	private  String multicastOutputMessage ="";
 	
+	private static final List<ServerSocketThread> socksClients = new ArrayList<ServerSocketThread>();
 	public void run() {
 		
 		Image image = Toolkit.getDefaultToolkit().createImage(this.getClass().getClassLoader().getResource("com/flat20/fingerplay/connect_wait.png"));
 		 Image imageR = Toolkit.getDefaultToolkit().createImage(this.getClass().getClassLoader().getResource("com/flat20/fingerplay/connect_on.png"));
-		 
-	
-		 
+
          PopupMenu popup = new PopupMenu();
        
-         final TrayIcon trayIcon = new TrayIcon(image, "MidiIo Server Running", popup);
+         final TrayIcon trayIcon = new TrayIcon(image, "Midi.IO Server Running", popup);
          trayIcon.setImageAutoSize(true);
 
          Enumeration e;
@@ -78,14 +78,12 @@ public class FingerPlayServer implements Runnable{
 			}
 		
 		} catch (SocketException e2) {
-			// TODO Auto-generated catch block
+		
 			e2.printStackTrace();
 		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
+
 			e1.printStackTrace();
 		}
-		
-			// Start multicast server
 
 			 multicastOutputMessage = mLocalIP + ":" + mPort;
 			 
@@ -94,9 +92,8 @@ public class FingerPlayServer implements Runnable{
 
 	           MenuItem item = new MenuItem("Info");
 	           
-	 
 		  item.addActionListener(new ShowMessageListener(trayIcon,
-	            "7Pad MidiIo server", "Im Listening on " + multicastOutputMessage, TrayIcon.MessageType.INFO));
+	            "7Pad Midi.IO server", "Im Listening on " + multicastOutputMessage, TrayIcon.MessageType.INFO));
 	          popup.add(item);
 	        
 	          item = new MenuItem("Close");
@@ -117,52 +114,65 @@ public class FingerPlayServer implements Runnable{
 	          System.err.println("Tray unavailable");
 	        }
      	
-     	
-		
-		try {
-
-			
-			SocketCommand s = new SocketCommand();
-
- 			// Open MIDI Device.
-			midi = new Midi();
-			
-
-			Thread multicastServerThread = null;
-			
-				try {
-					multicastServerThread = new Thread( new MulticastServer(MULTICAST_SERVERIP, MULTICAST_SERVERPORT, multicastOutputMessage) );
-				
-					multicastServerThread.start();
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-
-			//	trayIcon.displayMessage("Server info", "", TrayIcon.MessageType.INFO);
-			
-			trayIcon.displayMessage("7Pad MidiIo", "v" + VERSION + " \n Listening on : " + multicastOutputMessage, TrayIcon.MessageType.INFO);
+		try {	
+			trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION + " \n Listening on : " + multicastOutputMessage, TrayIcon.MessageType.INFO);
 			// Wait for client connection
-			
+			/// midi device to pass to each new  socket
+	
 			ServerSocket serverSocket = new ServerSocket(mPort);
+			//serverSocket.setSoTimeout(timeout_length);
+			
 			System.out.println("Waiting for connection...");		
 			System.out.println("Im Listening on " + multicastOutputMessage);
-			 while(!Thread.currentThread().isInterrupted()) {
 
+			 while(!Thread.currentThread().isInterrupted()) {
+				 // wait for client socket connexion
 				Socket client = serverSocket.accept();
-				ClientSocketThread st = new ClientSocketThread(client, midi,trayIcon,image);
-				Thread thread = new Thread( st );
-				thread.start();
-				//System.out.println("Accepted new client connection.");
-				trayIcon.setImage(imageR);
-				 trayIcon.displayMessage("Incoming client", "New client connexion accepted.", TrayIcon.MessageType.INFO);
+				
+				//close if exist
+				
+				ListIterator<ServerSocketThread> iter = socksClients.listIterator();
+				while(iter.hasNext()){
+					
+					ServerSocketThread sock = iter.next();
+					if (sock.getClientConn()!=null){
+						// reconnect, same IP
+						if (client.getInetAddress().equals(sock.getClientConn().getInetAddress())){
+							sock.stopMe();
+							 iter.remove();
+							 Midi.number_of_connections--;
+						}
+					}else{
+						// null client connection
+						sock.stopMe();
+						 iter.remove();
+						 Midi.number_of_connections--;
+					}
+ 
+				}
+				if (Midi.number_of_connections<max_connections){
+						
+					// create and run socket thread for new client
+					ServerSocketThread st = new ServerSocketThread(client,trayIcon,image);
+					st.start();
+					socksClients.add(st);
+					Midi.number_of_connections++;
+					trayIcon.setImage(imageR);
+					 trayIcon.displayMessage("Incoming client", "New client connexion accepted.", TrayIcon.MessageType.INFO);
+					
+				}
+				else{
+					
+					client.close();
+				
+					trayIcon.setImage(imageR);
+					 trayIcon.displayMessage("New client error", "Client Connexion rejected max reached : "+max_connections, TrayIcon.MessageType.INFO);
+				}
+				
 			}
-			 // interupted
-			 if (multicastServerThread!=null){
-				 multicastServerThread.interrupt();
-			 }		
+			 serverSocket.close();
 		} 
-		
+
 		catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -196,7 +206,6 @@ public class FingerPlayServer implements Runnable{
 	
 
 	public static void main (String[] args) {
-		
 		if (args.length > 0) {
 			try {
 				int port = Integer.parseInt(args[0]);
@@ -205,13 +214,8 @@ public class FingerPlayServer implements Runnable{
 				System.out.println("Couldn't set server port to " + args[0]);
 			}
 		}
-		
 		final Thread desktopServerThread = new Thread(new FingerPlayServer());
-		
-		
-		
-		
-		
 		desktopServerThread.start();
 	}
 } 
+

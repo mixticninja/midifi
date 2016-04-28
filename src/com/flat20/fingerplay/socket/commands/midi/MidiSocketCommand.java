@@ -1,5 +1,7 @@
 package com.flat20.fingerplay.socket.commands.midi;
 
+import javax.sound.midi.ShortMessage;
+
 import com.flat20.fingerplay.socket.commands.SocketCommand;
 
 public class MidiSocketCommand extends SocketCommand {
@@ -9,10 +11,16 @@ public class MidiSocketCommand extends SocketCommand {
 	public int data1;
 	public int data2;
 
+	
 	public MidiSocketCommand() {
 		super(COMMAND_MIDI_SHORT_MESSAGE);
 	}
 
+	public MidiSocketCommand(ShortMessage msg){
+		super(COMMAND_MIDI_SHORT_MESSAGE);
+		set(msg.getCommand(), msg.getChannel(), msg.getData1(), msg.getData2());
+	}
+	
 	public MidiSocketCommand(int midiCommand, int channel, int data1, int data2) {
 		super(COMMAND_MIDI_SHORT_MESSAGE);
 		set(midiCommand, channel, data1, data2);
@@ -23,17 +31,7 @@ public class MidiSocketCommand extends SocketCommand {
 		super(COMMAND_MIDI_SHORT_MESSAGE);
 		set(midiCommand, channel, data1, data2);
 	}
-/*
-	public void encode() {
-		command = SocketCommand.COMMAND_MIDI_SHORT_MESSAGE;
-		data = new byte[5];
-		data[0] = command;
-		data[1] = midiCommand;
-		data[2] = channel;
-		data[3] = data1;
-		data[4] = data2;
-	}
-*/
+
 
 	public void set(int midiCommand, int channel, int data1, int data2) {
 		this.midiCommand = midiCommand;
