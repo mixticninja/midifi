@@ -36,9 +36,9 @@ public class UdpOutput
 	}
 
 	public void init(InetAddress ipAddress, int port) {
-		if (!isClosed()) { // only one client at a time
+			// only one client at a time
 			close();
-		}
+
 		createSock( ipAddress,  port);
 	}
 	
@@ -64,7 +64,7 @@ public class UdpOutput
 
 	public boolean isClosed(){
 		boolean closed = true;
-		if (clientSocket!=null && !clientSocket.isClosed()){
+		if (clientSocket!=null){
 			closed = false;
 		}
 		return closed;
