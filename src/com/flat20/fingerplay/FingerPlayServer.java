@@ -33,8 +33,8 @@ public class FingerPlayServer implements Runnable{
 
 	private String mLocalIP = null;
 	private static int mPort = SERVERPORT;
-	
 
+	private ServerSocket serverSocket = null;
 
 	/** Maximum number of connections */
 	private static final int max_connections = 1;
@@ -45,25 +45,24 @@ public class FingerPlayServer implements Runnable{
 	private static final List<ServerSocketThread> socksClients = new ArrayList<ServerSocketThread>();
 	public void run() {
 		
-		Image image = Toolkit.getDefaultToolkit().createImage(this.getClass().getClassLoader().getResource("com/flat20/fingerplay/connect_wait.png"));
-		 Image imageR = Toolkit.getDefaultToolkit().createImage(this.getClass().getClassLoader().getResource("com/flat20/fingerplay/connect_on.png"));
+		final Image image = Toolkit.getDefaultToolkit().createImage(this.getClass().getClassLoader().getResource("com/flat20/fingerplay/connect_wait.png"));
+		final Image imageR = Toolkit.getDefaultToolkit().createImage(this.getClass().getClassLoader().getResource("com/flat20/fingerplay/connect_on.png"));
 
          PopupMenu popup = new PopupMenu();
        
          final TrayIcon trayIcon = new TrayIcon(image, "Midi.IO Server Running", popup);
          trayIcon.setImageAutoSize(true);
 
-         Enumeration e;
 		try {
-			e = NetworkInterface.getNetworkInterfaces();
+			Enumeration<NetworkInterface> netIO = NetworkInterface.getNetworkInterfaces();
 		
-			while(e.hasMoreElements())
+			while(netIO.hasMoreElements())
 			{
-			    NetworkInterface n = (NetworkInterface) e.nextElement();
-			    Enumeration ee = n.getInetAddresses();
-			    while (ee.hasMoreElements())
+			    NetworkInterface n = (NetworkInterface) netIO.nextElement();
+			    Enumeration<InetAddress> netAdress = n.getInetAddresses();
+			    while (netAdress.hasMoreElements())
 			    {
-			        InetAddress i = (InetAddress) ee.nextElement();
+			        InetAddress i = (InetAddress) netAdress.nextElement();
 			        
 			        if (i.isSiteLocalAddress()){
 			        	mLocalIP = i.getHostAddress();
@@ -95,16 +94,38 @@ public class FingerPlayServer implements Runnable{
 		  item.addActionListener(new ShowMessageListener(trayIcon,
 	            "7Pad Midi.IO server", "Im Listening on " + multicastOutputMessage, TrayIcon.MessageType.INFO));
 	          popup.add(item);
-	        
+
+	          item = new MenuItem("Clear connexions");
+	          item.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	            	// clean client connections
+	            	ListIterator<ServerSocketThread> iter = socksClients.listIterator();
+					while(iter.hasNext()){
+						
+						ServerSocketThread sock = iter.next();
+							sock.stopMe();
+							 iter.remove();	 
+						}
+					Midi.number_of_connections=0;
+					trayIcon.setImage(image);
+					trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION + " \n Listening on : " + multicastOutputMessage, TrayIcon.MessageType.INFO);
+					System.out.println("Waiting for connection...");		
+					System.out.println("Im Listening on " + multicastOutputMessage);
+
+	            }   
+		  });
+	          popup.add(item);
+
 	          item = new MenuItem("Close");
 		  item.addActionListener(new ActionListener() {
 	            public void actionPerformed(ActionEvent e) {
 		      tray.remove(trayIcon);
 		      
 		      System.exit(0);
-	            }
+	            }   
 		  });
 	          popup.add(item);
+
 	          try {
 	            tray.add(trayIcon);
 	          } catch (AWTException ex) {
@@ -114,72 +135,21 @@ public class FingerPlayServer implements Runnable{
 	          System.err.println("Tray unavailable");
 	        }
      	
-		try {	
-			trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION + " \n Listening on : " + multicastOutputMessage, TrayIcon.MessageType.INFO);
-			// Wait for client connection
-			/// midi device to pass to each new  socket
-	
-			ServerSocket serverSocket = new ServerSocket(mPort);
-			//serverSocket.setSoTimeout(timeout_length);
-			
-			System.out.println("Waiting for connection...");		
-			System.out.println("Im Listening on " + multicastOutputMessage);
-
-			 while(!Thread.currentThread().isInterrupted()) {
-				 // wait for client socket connexion
-				Socket client = serverSocket.accept();
-				
-				//close if exist
-				
-				ListIterator<ServerSocketThread> iter = socksClients.listIterator();
-				while(iter.hasNext()){
-					
-					ServerSocketThread sock = iter.next();
-					if (sock.getClientConn()!=null){
-						// reconnect, same IP
-						if (client.getInetAddress().equals(sock.getClientConn().getInetAddress())){
-							sock.stopMe();
-							 iter.remove();
-							 Midi.number_of_connections--;
-						}
-					}else{
-						// null client connection
-						sock.stopMe();
-						 iter.remove();
-						 Midi.number_of_connections--;
-					}
- 
-				}
-				if (Midi.number_of_connections<max_connections){
-						
-					// create and run socket thread for new client
-					ServerSocketThread st = new ServerSocketThread(client,trayIcon,image);
-					st.start();
-					socksClients.add(st);
-					Midi.number_of_connections++;
-					trayIcon.setImage(imageR);
-					 trayIcon.displayMessage("Incoming client", "New client connexion accepted.", TrayIcon.MessageType.INFO);
-					
-				}
-				else{
-					
-					client.close();
-				
-					trayIcon.setImage(imageR);
-					 trayIcon.displayMessage("New client error", "Client Connexion rejected max reached : "+max_connections, TrayIcon.MessageType.INFO);
-				}
-				
-			}
-			 serverSocket.close();
-		} 
-
-		catch (IOException e1) {
-			// TODO Auto-generated catch block
+     	try {
+     		 serverSocket = new ServerSocket(mPort);
+     		 
+     	}catch (IOException e1) {
+		
 			e1.printStackTrace();
 		} catch (IllegalThreadStateException e1) {
-		// TODO Auto-generated catch block
+
 		e1.printStackTrace();
 	}
+     	
+		//serverSocket.setSoTimeout(timeout_length);
+     
+		
+     	startSrvLoop(serverSocket, trayIcon,image,imageR);
 		
 	}
 
@@ -204,6 +174,69 @@ public class FingerPlayServer implements Runnable{
 	    }
 	  }
 	
+	
+	public void startSrvLoop(ServerSocket serverSocket, TrayIcon trayIcon,Image image,Image imageR ){
+		try {	
+			
+			trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION + " \n Listening on : " + multicastOutputMessage, TrayIcon.MessageType.INFO);
+			System.out.println("Waiting for connection...");		
+			System.out.println("Im Listening on " + multicastOutputMessage);
+
+			 while(!Thread.currentThread().isInterrupted() && !serverSocket.isClosed()) {
+				 Socket client = null;
+				if (!serverSocket.isClosed()){
+					 // wait for client socket connexion
+					 client = serverSocket.accept();
+				}
+				
+				//close if exist
+				
+				ListIterator<ServerSocketThread> iter = socksClients.listIterator();
+				while(iter.hasNext()){
+					
+					ServerSocketThread sock = iter.next();
+					if (sock.getClientConn()!=null  && client!=null){
+						// reconnect, same IP
+						if (client.getInetAddress().equals(sock.getClientConn().getInetAddress())){
+							sock.stopMe();
+							 iter.remove();
+							 Midi.number_of_connections--;
+						}
+					}else{
+						// null client connection
+						sock.stopMe();
+						 iter.remove();
+						 Midi.number_of_connections--;
+					}
+ 
+				}
+				if (Midi.number_of_connections<max_connections){
+						
+					// create and run socket thread for new client
+					ServerSocketThread st = new ServerSocketThread(client,trayIcon,image);
+					st.start();
+					socksClients.add(st);
+					Midi.number_of_connections++;
+					trayIcon.setImage(imageR);
+					 trayIcon.displayMessage("Incoming client", "New client connexion accepted.", TrayIcon.MessageType.INFO);
+				}
+				else{
+					client.close();
+					trayIcon.displayMessage("New client error", "Client Connexion rejected max reached : "+max_connections, TrayIcon.MessageType.INFO);
+				}
+			}
+			 serverSocket = null;	 
+		} 
+
+		catch (IOException e1) {
+
+			e1.printStackTrace();
+		} catch (IllegalThreadStateException e1) {
+
+		e1.printStackTrace();
+	
+	} 
+	}
 
 	public static void main (String[] args) {
 		if (args.length > 0) {
