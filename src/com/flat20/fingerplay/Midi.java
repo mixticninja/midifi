@@ -11,8 +11,6 @@ import javax.sound.midi.ShortMessage;
 import javax.sound.midi.SysexMessage;
 import javax.sound.midi.Transmitter;
 
-import com.flat20.fingerplay.socket.UdpOutput;
-
 public class Midi {
 
 	/** Number of connections */

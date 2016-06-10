@@ -187,6 +187,7 @@ public class FingerPlayServer implements Runnable{
 				if (!serverSocket.isClosed()){
 					 // wait for client socket connexion
 					 client = serverSocket.accept();
+					
 				}
 				
 				//close if exist
@@ -195,21 +196,29 @@ public class FingerPlayServer implements Runnable{
 				while(iter.hasNext()){
 					
 					ServerSocketThread sock = iter.next();
+					boolean remove = false;
 					if (sock.getClientConn()!=null  && client!=null){
 						// reconnect, same IP
 						if (client.getInetAddress().equals(sock.getClientConn().getInetAddress())){
-							sock.stopMe();
-							 iter.remove();
-							 Midi.number_of_connections--;
+							remove = true;
+						}else{
+							if (sock.getClientConn().isClosed()){
+								remove = true;
+							}
 						}
 					}else{
-						// null client connection
+						remove = true;
+						// null client connection	
+					}
+					if (remove){
 						sock.stopMe();
 						 iter.remove();
 						 Midi.number_of_connections--;
 					}
+					
  
 				}
+				if (socksClients.size()==0) Midi.number_of_connections=0;
 				if (Midi.number_of_connections<max_connections){
 						
 					// create and run socket thread for new client
