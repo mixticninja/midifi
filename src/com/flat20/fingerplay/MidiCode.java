@@ -1,7 +1,7 @@
 package com.flat20.fingerplay;
 
 /**
- * http://www.cotse.com/dlf/man/midi/realtime.htm 
+ * http://www.cotse.com/dlf/man/midi/realtime.htm
  */
 public class MidiCode {
 
@@ -11,9 +11,8 @@ public class MidiCode {
 	public static final int MIDI_REALTIME_CLOCK_TICK = 0xF8;
 	public static final int MIDI_REALTIME_CLOCK_RESUME = 0xFB;
 	public static final int SONG_POSITION_POINTER = 0xF2;
-	
-	public static boolean isRealtime(int message) 
-	{
+
+	public static boolean isRealtime(int message) {
 		return (message & MIDI_REALTIME_MASK) == MIDI_REALTIME_MASK;
 	}
 

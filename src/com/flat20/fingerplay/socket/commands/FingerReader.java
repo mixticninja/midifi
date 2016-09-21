@@ -30,7 +30,7 @@ public class FingerReader {
 	}
 
 	public byte readCommand() throws Exception {
-
+		
 		byte command = mIn.readByte();
 		//System.out.println("socket read command : " + command);
 		// commands[COMMAND_ID] = SocketCommand ?
@@ -48,7 +48,7 @@ public class FingerReader {
 				return command;
 			
 			case SocketCommand.COMMAND_SET_MIDI_DEVICE:
-				System.out.println("socket read command : " + command + this.toString());
+				//System.out.println("socket read command : " + command + this.toString());
 				mReceiver.onSetMidiDevice( (SetMidiDevice) decode(sMd, command) );
 				return command;
 
@@ -56,7 +56,7 @@ public class FingerReader {
 				mReceiver.onVersion( (Version) decode(sV, command) );
 				return command;
 			default:
-				System.out.println("Unknown command: " + command);
+				//System.out.println("Unknown command: " + command);
 		}
 		return -1;
 	}

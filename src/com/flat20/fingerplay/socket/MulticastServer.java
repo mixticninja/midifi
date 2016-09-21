@@ -35,10 +35,11 @@ public class MulticastServer implements Runnable {
 				try {
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
+					socket.close();
 					e.printStackTrace();
 				}
 			}
-
+			
 		} catch (Exception e) {
 			System.out.println(e.toString());
 		}

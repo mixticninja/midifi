@@ -12,18 +12,15 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
-import javax.sound.midi.MidiDevice;
-import javax.sound.midi.Transmitter;
-
 import com.flat20.fingerplay.FingerPlayServer;
 import com.flat20.fingerplay.Midi;
-import com.flat20.fingerplay.MidiReceiver;
 import com.flat20.fingerplay.MidiReceiver.IMidiListener;
 import com.flat20.fingerplay.socket.commands.FingerReader;
 import com.flat20.fingerplay.socket.commands.FingerReader.ISocketReceiver;
 import com.flat20.fingerplay.socket.commands.FingerWriter;
 import com.flat20.fingerplay.socket.commands.midi.MidiControlChange;
 import com.flat20.fingerplay.socket.commands.midi.MidiNoteOff;
+import com.flat20.fingerplay.socket.commands.midi.MidiPgmChange;
 import com.flat20.fingerplay.socket.commands.midi.MidiSocketCommand;
 import com.flat20.fingerplay.socket.commands.misc.DeviceList;
 import com.flat20.fingerplay.socket.commands.misc.RequestMidiDeviceList;
@@ -38,7 +35,7 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 	final private DataOutputStream outToCli;
 	final private FingerWriter mWriter;
 
-	final private MidiReceiver mMidiReceiver;
+//	final private MidiReceiver mMidiReceiver;
 	
 	private boolean stopMe = false;
 	private TrayIcon trayIco = null;
@@ -53,11 +50,6 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		outToCli = new DataOutputStream(new BufferedOutputStream(clientConn.getOutputStream()));
 		mWriter = new FingerWriter(clientConn,outToCli);
 	
-		mMidiReceiver = new MidiReceiver(this);
-		
-		// for midi RT messages 
-		 UdpOutput.getInstance().init(clientConn.getInetAddress(),FingerPlayServer.UDP_SERVERPORT);
-		
 		
 	}
 
@@ -74,11 +66,10 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 					try {		
 						//block till Reads one command
 						reader.readCommand();
-
 					} catch (SocketTimeoutException e) {
-						closeAll();
 						
-						System.out.println("socket read timed outToCli..");
+						closeAll();	
+						
 					}
 			}
 		
@@ -97,25 +88,33 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		} finally {
 			closeAll();
 		}
-		//System.out.println("Client disconnected.");
-		if(SystemTray.isSupported()){
-			 trayIco.setImage(image);
-			 trayIco.displayMessage("Deconnexion", "Client disconnected.", TrayIcon.MessageType.INFO);
 		
-		}
+
+		
 
 		return;
 	}
 
 	
 	private void closeAll(){
-		UdpOutput.getInstance().close();
-		mMidiReceiver.close();
+		
 		try {
 			clientConn.close();
-	
+			
+			if(SystemTray.isSupported()){
+				FingerPlayServer.getSocksClients().remove(this);
+				int rest = FingerPlayServer.getSocksClients().size();
+				Midi.number_of_connections = rest;
+				if (rest==0){
+					 trayIco.setImage(image);
+				}
+			
+				 trayIco.displayMessage("Deconnexion", "Client disconnected.", TrayIcon.MessageType.INFO);
+			
+			}
+			
 		} catch (IOException io) {
-			System.out.println("Error closing connexio" + io.getMessage());
+			System.out.println("Error closing connexion" + io.getMessage());
 		}
 		stopMe = true;
 		
@@ -159,17 +158,11 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 			
 			String device = ssm.message;
 
-			System.out.println("Setting MIDI Device: " + device);
+			//System.out.println("Setting MIDI Device: " + device);
 			synchronized (Midi.getInstance()) {
-				Midi.getInstance().close();
-				MidiDevice midiDeviceIN = Midi.getInstance().open(device, false); // true = bForOutput
+			
 				Midi.getInstance().open(device, true); // true = bForOutput
-				if (midiDeviceIN != null) {
-					System.out.println("midiDeviceIN = " + midiDeviceIN);
-					Transmitter	t = midiDeviceIN.getTransmitter();
-					if (t != null)
-						t.setReceiver(mMidiReceiver);
-				}
+				UdpOutput.getInstance().assignMidiUDPReceiver(device,clientConn.getInetAddress());
 			}
 		}
 		
@@ -189,6 +182,15 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 	}
 	
 	
+	public void onProgramChange(int channel,  int value) {
+		MidiPgmChange mpc = new MidiPgmChange(channel, value);
+		try {
+			mWriter.write( mpc );
+		} catch (Exception e) {
+			
+		}
+	}
+	
 	
 
 	public void onNoteOff(int channel, int key, int velocity) {
@@ -201,7 +203,7 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 	}
 
 	public void onNoteOn(int channel, int key, int velocity) {
-		 System.out.println("note on : ");	
+		// System.out.println("note on : ");	
 		MidiNoteOff mno = new MidiNoteOff(channel, key, velocity);
 		try {
 			mWriter.write( mno );
@@ -210,15 +212,8 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		}
 	}
 
-	public void onMidiForClientReceived(byte[] message) {
-	         try {
-	        	// System.out.println("sending MSG : " + (message[0] &0xFF));	
-	        	 UdpOutput.getInstance().send(message);
-				} catch (Exception e) {
-				
-					e.printStackTrace();
-				}
-
+	public void onMidiSyncReceived(byte[] message) {
+	       
 	}
 
 }

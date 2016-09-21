@@ -6,9 +6,17 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
-import com.flat20.fingerplay.MidiCode;
+import javax.sound.midi.MidiDevice;
+import javax.sound.midi.MidiUnavailableException;
+import javax.sound.midi.Transmitter;
 
-public class UdpOutput
+import com.flat20.fingerplay.FingerPlayServer;
+import com.flat20.fingerplay.Midi;
+import com.flat20.fingerplay.MidiCode;
+import com.flat20.fingerplay.MidiReceiver;
+import com.flat20.fingerplay.MidiReceiver.IMidiListener;
+
+public class UdpOutput implements IMidiListener
 {
 	protected int port;
 	protected boolean multicast = false;
@@ -19,6 +27,8 @@ public class UdpOutput
 	
 	private static UdpOutput instance = null;
 	
+	private static MidiReceiver mMidiReceiver = null;
+	
 	public static UdpOutput getInstance(){
 	    if(instance==null){
 	    	instance = new UdpOutput();
@@ -27,6 +37,9 @@ public class UdpOutput
 	  }
 
 	private UdpOutput() {
+		if (mMidiReceiver==null){
+			mMidiReceiver = new MidiReceiver(this);
+		}
 		
 	}
 
@@ -35,10 +48,11 @@ public class UdpOutput
 		return (multicast ? "Multicast" : "Unicast") + " :" + String.valueOf(port);
 	}
 
+	public MidiReceiver getMidiReceiver(){
+		return mMidiReceiver;
+	}
 	public void init(InetAddress ipAddress, int port) {
-			// only one client at a time
 			close();
-
 		createSock( ipAddress,  port);
 	}
 	
@@ -78,6 +92,9 @@ public class UdpOutput
 			clientSocket.close();
 			clientSocket = null;
 		}
+		this.port = 0;
+		this.ipAddress = null;
+		Midi.getInstance().close();
 	}
 
 
@@ -102,6 +119,84 @@ public class UdpOutput
 		
 		}
 		
+	}
+	
+	public void sendToAll(byte[] message) {
+		DatagramPacket packet;
+		
+		for (ServerSocketThread sock : FingerPlayServer.getSocksClients()){
+			InetAddress ipAdd = sock.getClientConn().getInetAddress();
+		
+		if(message.length == 1 && message[0] == (byte)MidiCode.MIDI_REALTIME_CLOCK_TICK)
+		{
+			packet = new DatagramPacket(new byte[]{(byte)0xF8}, 1, ipAdd, port);
+		}
+		else
+		{
+			packet = new DatagramPacket(message, message.length, ipAdd, port);
+		}
+		
+			try {
+			if (!isClosed())
+				clientSocket.send(packet);
+			
+		} catch (IOException e) {
+			System.out.println( "Cannot send packet" + e.getMessage());
+		
+		}
+			
+		}
+		
+	}
+	
+
+	public void onNoteOn(int channel, int key, int velocity) {
+		// TODO Auto-generated method stub
+		//System.out.println("onNoteOn");
+	}
+
+	public void onNoteOff(int channel, int key, int velocity) {
+		// TODO Auto-generated method stub
+		//System.out.println("onNoteOff");
+	}
+
+	public void onControlChange(int channel, int key, int velocity) {
+		// TODO Auto-generated method stub
+		System.out.println("onControlChange");
+	}
+
+	public void onMidiSyncReceived(byte[] message) {
+		  try {
+	        	// System.out.println("sending MSG : " + (message[0] &0xFF));	
+	        	 //send(message);
+			  	sendToAll(message);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+		
+	}
+	
+	public void assignMidiUDPReceiver(String device ,InetAddress clientIp){
+		
+			if (clientIp.toString().equals(this.ipAddress.toString())){
+
+			MidiDevice midiDeviceIN = Midi.getInstance().open(device, false); // true = bForOutput
+			
+			if (midiDeviceIN != null) {
+				//System.out.println("midiDeviceIN = " + midiDeviceIN);
+				Transmitter t =null;
+				try {
+					t = midiDeviceIN.getTransmitter();
+				} catch (MidiUnavailableException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if (t != null && clientIp.toString().equals(this.ipAddress.toString()))
+					t.setReceiver(mMidiReceiver);
+			}
+			}
+			
+	
 	}
 
 }
