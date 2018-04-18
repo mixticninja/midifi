@@ -43,6 +43,9 @@ public class FingerPlayServer implements Runnable {
 	private String multicastOutputMessage = "";
 
 	private static final List<ServerSocketThread> socksClients = new ArrayList<ServerSocketThread>();
+	
+	
+	private TrayIcon trayIcon =null;
 
 	public static List<ServerSocketThread> getSocksClients() {
 		return socksClients;
@@ -56,13 +59,18 @@ public class FingerPlayServer implements Runnable {
 		final Image imageR = Toolkit.getDefaultToolkit().createImage(
 				this.getClass().getClassLoader()
 						.getResource("com/flat20/fingerplay/connect_on.png"));
-
 		PopupMenu popup = new PopupMenu();
 
-		final TrayIcon trayIcon = new TrayIcon(image, "Midi.IO Server Running",
-				popup);
-		trayIcon.setImageAutoSize(true);
-
+		 if(SystemTray.isSupported()) {
+			    // create image and popup menu and make a tray item from it
+			 trayIcon = new TrayIcon(image, "Midi.IO Server Running",
+						popup);
+				trayIcon.setImageAutoSize(true);
+			  }
+			  else {
+			    // fall back logic in case the JVM has no access to the tray.
+			  }
+		 
 		try {
 			Enumeration<NetworkInterface> netIO = NetworkInterface
 					.getNetworkInterfaces();
@@ -118,10 +126,13 @@ public class FingerPlayServer implements Runnable {
 						iter.remove();
 					}
 					Midi.number_of_connections = 0;
-					trayIcon.setImage(image);
-					trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION
-							+ " \n Listening on : " + multicastOutputMessage,
-							TrayIcon.MessageType.INFO);
+					if (trayIcon!=null) {
+						trayIcon.setImage(image);
+						trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION
+								+ " \n Listening on : " + multicastOutputMessage,
+								TrayIcon.MessageType.INFO);
+					}
+					
 					System.out.println("Waiting for connection...");
 					System.out.println("Im Listening on "
 							+ multicastOutputMessage);
@@ -133,18 +144,22 @@ public class FingerPlayServer implements Runnable {
 			item = new MenuItem("Close");
 			item.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					tray.remove(trayIcon);
+					if (trayIcon!=null) {
+						tray.remove(trayIcon);
+					}
 
 					System.exit(0);
 				}
 			});
 			popup.add(item);
-
-			try {
-				tray.add(trayIcon);
-			} catch (AWTException ex) {
-				System.err.println("Can't add to tray");
+			if (trayIcon!=null) {
+				try {
+					tray.add(trayIcon);
+				} catch (AWTException ex) {
+					System.err.println("Can't add to tray");
+				}
 			}
+			
 		} else {
 			System.err.println("Tray unavailable");
 		}
@@ -181,7 +196,10 @@ public class FingerPlayServer implements Runnable {
 		}
 
 		public void actionPerformed(ActionEvent e) {
-			trayIcon.displayMessage(title, message, messageType);
+			if (trayIcon !=null) {
+				trayIcon.displayMessage(title, message, messageType);
+			}
+			
 		}
 	}
 
@@ -189,9 +207,12 @@ public class FingerPlayServer implements Runnable {
 			Image image, Image imageR) {
 		try {
 
-			trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION
-					+ " \n Listening on : " + multicastOutputMessage,
-					TrayIcon.MessageType.INFO);
+			if (trayIcon !=null) {
+				trayIcon.displayMessage("7Pad Midi.IO", "v" + VERSION
+						+ " \n Listening on : " + multicastOutputMessage,
+						TrayIcon.MessageType.INFO);
+			}
+			
 			System.out.println("Waiting for connection...");
 			System.out.println("Im Listening on " + multicastOutputMessage);
 
@@ -251,16 +272,27 @@ public class FingerPlayServer implements Runnable {
 					socksClients.add(st);
 
 					Midi.number_of_connections++;
-					trayIcon.setImage(imageR);
-					trayIcon.displayMessage("Incoming client",
-							"New client connexion accepted.",
-							TrayIcon.MessageType.INFO);
+					if (trayIcon !=null) {
+						trayIcon.setImage(imageR);
+						trayIcon.displayMessage("Incoming client",
+								"New client connexion accepted.",
+								TrayIcon.MessageType.INFO);
+					}else {
+						System.out.println("Incoming new client connexion accepted...");
+					}
+					
 				} else {
 					client.close();
-					trayIcon.displayMessage("New client error",
-							"Client Connexion rejected max reached : "
-									+ max_connections,
-							TrayIcon.MessageType.INFO);
+					
+					if (trayIcon !=null) {
+						trayIcon.displayMessage("New client error",
+								"Client Connexion rejected max reached : "
+										+ max_connections,
+								TrayIcon.MessageType.INFO);
+					}else {
+						System.out.println("Client Connexion rejected max reached :"+ max_connections);
+					}
+					
 				}
 			}
 			serverSocket = null;
