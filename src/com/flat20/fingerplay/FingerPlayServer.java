@@ -283,7 +283,7 @@ public class FingerPlayServer implements Runnable {
 					
 				} else {
 					client.close();
-					
+				
 					if (trayIcon !=null) {
 						trayIcon.displayMessage("New client error",
 								"Client Connexion rejected max reached : "

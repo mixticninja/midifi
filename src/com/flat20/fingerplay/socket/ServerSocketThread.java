@@ -101,18 +101,19 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		try {
 			clientConn.close();
 			
-			if(SystemTray.isSupported()){
+			
 				FingerPlayServer.getSocksClients().remove(this);
 				int rest = FingerPlayServer.getSocksClients().size();
 				Midi.number_of_connections = rest;
+				
+			if(SystemTray.isSupported()){
 				if (rest==0){
 					 trayIco.setImage(image);
 				}
-			
 				 trayIco.displayMessage("Deconnexion", "Client disconnected.", TrayIcon.MessageType.INFO);
-			
+			}else {
+				System.out.println("Client deconnexion : Client connexion was closed.");
 			}
-			
 		} catch (IOException io) {
 			System.out.println("Error closing connexion" + io.getMessage());
 		}
