@@ -107,6 +107,7 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 					 trayIco.setImage(image);
 				}
 				 trayIco.displayMessage("Deconnexion", "Client disconnected.", TrayIcon.MessageType.INFO);
+				 System.out.println("Client deconnexion : Client connexion was closed.");
 			}else {
 				System.out.println("Client deconnexion : Client connexion was closed.");
 			}

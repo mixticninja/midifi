@@ -276,6 +276,7 @@ public class FingerPlayServer implements Runnable {
 						trayIcon.displayMessage("Incoming client",
 								"New client connexion accepted.",
 								TrayIcon.MessageType.INFO);
+						System.out.println("Incoming new client connexion accepted...");
 					}else {
 						System.out.println("Incoming new client connexion accepted...");
 					}
@@ -288,6 +289,7 @@ public class FingerPlayServer implements Runnable {
 								"Client Connexion rejected max reached : "
 										+ max_connections,
 								TrayIcon.MessageType.INFO);
+						System.out.println("Client Connexion rejected max reached :"+ max_connections);
 					}else {
 						System.out.println("Client Connexion rejected max reached :"+ max_connections);
 					}
