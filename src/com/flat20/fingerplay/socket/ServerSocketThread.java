@@ -76,14 +76,15 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 			closeAll();
 
 		} catch (SocketException e) {
-			System.out.println(e);
+			System.out.println("Socket Error : ");
+			System.out.println(e.getMessage());
 		} catch (EOFException e) {
-			System.out.println(e);
+			//System.out.println(e);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			System.out.println("Client message too long for buffer.");
-			System.out.println(e);
+			//System.out.println(e);
 		} catch(Exception e) {
-			System.out.println("S: Error");
+			System.out.println("Socket Unknown Error : ");
 			e.printStackTrace();
 		} finally {
 			closeAll();
