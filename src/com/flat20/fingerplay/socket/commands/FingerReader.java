@@ -56,7 +56,7 @@ public class FingerReader {
 				mReceiver.onVersion( (Version) decode(sV, command) );
 				return command;
 			default:
-				//System.out.println("Unknown command: " + command);
+				System.out.println("Unknown command: " + command);
 		}
 		return -1;
 	}

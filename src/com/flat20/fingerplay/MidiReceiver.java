@@ -31,7 +31,10 @@ public class MidiReceiver implements Receiver {
 
 	public void send(MidiMessage message, long timestamp) {
 		if (mListener != null) {
-			decodeMessage((ShortMessage) message);
+			if (message instanceof ShortMessage) {
+				decodeMessage((ShortMessage) message);
+			}
+			
 		}
 
 	}

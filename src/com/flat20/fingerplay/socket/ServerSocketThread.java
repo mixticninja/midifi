@@ -76,9 +76,9 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 			closeAll();
 
 		} catch (SocketException e) {
-			//System.out.println(e);
+			System.out.println(e);
 		} catch (EOFException e) {
-			//System.out.println(e);
+			System.out.println(e);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			System.out.println("Client message too long for buffer.");
 			System.out.println(e);
@@ -89,9 +89,6 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 			closeAll();
 		}
 		
-
-		
-
 		return;
 	}
 
@@ -100,8 +97,6 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		
 		try {
 			clientConn.close();
-			
-			
 				FingerPlayServer.getSocksClients().remove(this);
 				int rest = FingerPlayServer.getSocksClients().size();
 				Midi.number_of_connections = rest;
@@ -168,7 +163,7 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		}
 		
 	}
-
+	
 	public void onDeviceList(DeviceList deviceList) throws Exception {
 		
 	}
@@ -182,7 +177,6 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		}
 	}
 	
-	
 	public void onProgramChange(int channel,  int value) {
 		MidiPgmChange mpc = new MidiPgmChange(channel, value);
 		try {
@@ -192,8 +186,6 @@ public class ServerSocketThread  extends Thread implements ISocketReceiver, IMid
 		}
 	}
 	
-	
-
 	public void onNoteOff(int channel, int key, int velocity) {
 		MidiNoteOff mno = new MidiNoteOff(channel, key, velocity);
 		try {

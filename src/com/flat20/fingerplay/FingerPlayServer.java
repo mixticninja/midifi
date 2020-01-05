@@ -101,7 +101,7 @@ public class FingerPlayServer implements Runnable {
 			e1.printStackTrace();
 		}
 
-		multicastOutputMessage = mLocalIP + ":" + mPort;
+		multicastOutputMessage = "@IP : "+mLocalIP + " (port : " + mPort+")";
 
 		if (SystemTray.isSupported()) {
 			tray = SystemTray.getSystemTray();
@@ -255,8 +255,7 @@ public class FingerPlayServer implements Runnable {
 
 				}
 				
-				
-					
+							
 				if (Midi.number_of_connections < max_connections) {
 					// for midi RT messages
 
