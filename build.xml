@@ -7,7 +7,7 @@
 
 	<target name="jar">
 		<mkdir dir="bin/"/>
-        <jar destfile="bin/7PadMidi.jar" basedir="build/">
+        <jar destfile="bin/midifi.jar" basedir="build/">
             <manifest>
                 <attribute name="Main-Class" value="com.flat20.fingerplay.FingerPlayServer" />
             </manifest>
@@ -16,7 +16,7 @@
 		<!--
 		<jsmoothgen project="jsmooth/jsmooth.jsmooth" skeletonroot="jsmooth/skeletons"/>
 		-->
-		<zip destfile="bin/7PadMidi.zip"
+		<zip destfile="bin/midifi.zip"
 			basedir="bin/"
 			
 			excludes="*.zip,version.txt,*.exe"

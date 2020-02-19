@@ -1,0 +1,5 @@
+#Sat Jan 25 19:03:28 CET 2020
+db.password=password
+db.user=mkyong
+coucou=toto
+launch=gedit

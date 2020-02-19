@@ -1,1 +1,1 @@
-java -jar 7PadMidi.jar $*
+java -jar midifi.jar

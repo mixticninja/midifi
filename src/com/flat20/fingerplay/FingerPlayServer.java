@@ -1,6 +1,7 @@
 package com.flat20.fingerplay;
 
 import java.awt.AWTException;
+import java.awt.GraphicsConfiguration;
 import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
@@ -23,11 +24,12 @@ import java.util.ListIterator;
 
 import com.flat20.fingerplay.socket.ServerSocketThread;
 import com.flat20.fingerplay.socket.UdpOutput;
+import com.flat20.fingerplay.ui.SettingsFrame;
 
 public class FingerPlayServer implements Runnable {
 
-	public static final String VERSION = "1.0.3";
-	public static final int SERVERPORT = 4444;
+	public static final String VERSION = "1.0.4";
+	public static final int SERVERPORT = 8080;
 
 	public static final int UDP_SERVERPORT = 9013;
 
@@ -41,6 +43,9 @@ public class FingerPlayServer implements Runnable {
 	private SystemTray tray = null;
 
 	private String multicastOutputMessage = "";
+	
+	
+	static GraphicsConfiguration gc;
 
 	private static final List<ServerSocketThread> socksClients = new ArrayList<ServerSocketThread>();
 	
@@ -112,6 +117,15 @@ public class FingerPlayServer implements Runnable {
 					"7Pad Midi.IO server", "Im Listening on "
 							+ multicastOutputMessage, TrayIcon.MessageType.INFO));
 			popup.add(item);
+			
+			
+			item = new MenuItem("Setup");
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					SettingsFrame myset = new SettingsFrame(gc,mPort);
+				}
+			});
+			popup.add(item);
 
 			item = new MenuItem("Clear connexions");
 			item.addActionListener(new ActionListener() {
@@ -140,6 +154,8 @@ public class FingerPlayServer implements Runnable {
 				}
 			});
 			popup.add(item);
+			
+		
 
 			item = new MenuItem("Close");
 			item.addActionListener(new ActionListener() {
@@ -163,6 +179,8 @@ public class FingerPlayServer implements Runnable {
 		} else {
 			System.err.println("Tray unavailable");
 		}
+		
+		
 
 		try {
 			serverSocket = new ServerSocket(mPort);
@@ -212,19 +230,16 @@ public class FingerPlayServer implements Runnable {
 						+ " \n Listening on : " + multicastOutputMessage,
 						TrayIcon.MessageType.INFO);
 			}
-			
 			System.out.println("Waiting for connection...");
 			System.out.println("Im Listening on " + multicastOutputMessage);
 
 			while (!Thread.currentThread().isInterrupted()
 					&& !serverSocket.isClosed()) {
 				Socket client = null;
-				if (!serverSocket.isClosed()) {
-					
+				if (!serverSocket.isClosed()) {	
 					// wait for client socket connexion
 					client = serverSocket.accept();
 				}
-
 				// close if exist
 				ListIterator<ServerSocketThread> iter = socksClients
 						.listIterator();
@@ -249,8 +264,6 @@ public class FingerPlayServer implements Runnable {
 					if (remove) {
 						sock.stopMe();
 						iter.remove();
-					
-
 					}
 
 				}
@@ -312,14 +325,42 @@ public class FingerPlayServer implements Runnable {
 	}
 
 	public static void main(String[] args) {
+		
+		
+	
+		int port = PropertyReader.getInstance().getPort();
+		if (port!=-1) {
+			mPort = port;
+		}
+		
 		if (args.length > 0) {
+				String setup = args[0];
+				if (setup.equals("setup")) {
+					SettingsFrame myset = new SettingsFrame(gc,mPort);
+				}else {
+					try {
+						int portRead = Integer.parseInt(args[0]);
+						mPort = portRead;
+						
+					} catch (NumberFormatException e) {
+						System.out.println("Couldn't set server port to " + args[0]);
+					}
+				}
+		
+		}
+		
+		String toLaunch = PropertyReader.getInstance().getToLaunch();
+		// start launch vmidi
+		if (!toLaunch.isEmpty()) {
 			try {
-				int port = Integer.parseInt(args[0]);
-				mPort = port;
-			} catch (NumberFormatException e) {
-				System.out.println("Couldn't set server port to " + args[0]);
+			
+				new ProcessBuilder(toLaunch).start();
+			} catch (IOException e) {
+				System.out.println("Use setup to configure prelaunch executable !");
 			}
 		}
+		
+			
 		final Thread desktopServerThread = new Thread(new FingerPlayServer());
 		desktopServerThread.start();
 	}
